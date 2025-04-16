@@ -1,0 +1,219 @@
+<!-- intent is to go back and forth with AI to get what you want -->
+ <!-- make a web app of ship sailing around,, include html css and javascript all on one page.
+  when user hits the direction arrows, the boat faces and moves in that direction.
+ scratch page is main, connects to webapp and bootstrap, web app connects to scratch -->
+
+ <!-- generate url,, 24.5 teaches you how to host url -->
+
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+   <meta charset="UTF-8" />
+   <title>Maze Game</title>
+   <style>
+     body {
+       margin: 0;
+       background: #000;
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       justify-content: center;
+       height: 100vh;
+     }
+ 
+     #game-container {
+       display: none;
+       position: relative;
+     }
+ 
+     canvas {
+       background: #fff;
+       display: block;
+     }
+ 
+     .btn {
+       padding: 10px 20px;
+       font-size: 18px;
+       margin: 10px;
+       cursor: pointer;
+     }
+ 
+     #start-screen, #win-screen {
+       text-align: center;
+     }
+ 
+     #player {
+       width: 10px;
+       height: 10px;
+       background: red;
+       position: absolute;
+       border-radius: 50%;
+       transition: top 0.1s, left 0.1s;
+     }
+   </style>
+ </head>
+ <body>
+   <div id="start-screen">
+     <h1 style="color:white;">Maze Game</h1>
+     <button class="btn" onclick="startGame()">Play</button>
+     <nav>
+       <a href="scratch.html"><button class="btn" >Home Page </button></a>
+     </nav> 
+   </div>
+ 
+   <div id="game-container">
+     <canvas id="maze"></canvas>
+     <div id="player"></div>     
+     <nav>
+       <a href="scratch.html"><button class="btn" >Home Page </button></a>
+     </nav> 
+   </div>
+ 
+   <div id="win-screen" style="display:none;">
+     <h1 style="color:white;">You escaped!</h1>
+     <button class="btn" onclick="startGame()">Play Again</button>
+     <nav>
+       <a href="scratch.html"><button class="btn" >Home Page </button></a>
+     </nav> 
+   </div>
+ 
+   <script>
+     const canvas = document.getElementById('maze');
+     const ctx = canvas.getContext('2d');
+     const player = document.getElementById('player');
+     const gameContainer = document.getElementById('game-container');
+     const startScreen = document.getElementById('start-screen');
+     const winScreen = document.getElementById('win-screen');
+ 
+     const COLS = 20;
+     const ROWS = 20;
+     const CELL_SIZE = 25;
+     canvas.width = COLS * CELL_SIZE;
+     canvas.height = ROWS * CELL_SIZE;
+ 
+     let maze = [];
+     let visited = [];
+     let playerPos = { x: 0, y: 0 };
+ 
+     function startGame() {
+       startScreen.style.display = 'none';
+       winScreen.style.display = 'none';
+       gameContainer.style.display = 'block';
+       generateMaze();
+       drawMaze();
+       placePlayer();
+     }
+ 
+     function generateMaze() {
+       maze = Array.from({ length: ROWS }, () =>
+         Array(COLS).fill({ top: true, right: true, bottom: true, left: true })
+       );
+       visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+       carveMaze(0, 0);
+     }
+ 
+     function carveMaze(x, y) {
+       visited[y][x] = true;
+       const directions = shuffle(['top', 'right', 'bottom', 'left']);
+ 
+       for (let dir of directions) {
+         const [nx, ny] = getNeighbor(x, y, dir);
+         if (
+           nx >= 0 && ny >= 0 && nx < COLS && ny < ROWS && !visited[ny][nx]
+         ) {
+           maze[y][x] = { ...maze[y][x], [dir]: false };
+           const opposite = getOpposite(dir);
+           maze[ny][nx] = { ...maze[ny][nx], [opposite]: false };
+           carveMaze(nx, ny);
+         }
+       }
+     }
+ 
+     function getNeighbor(x, y, dir) {
+       switch (dir) {
+         case 'top': return [x, y - 1];
+         case 'right': return [x + 1, y];
+         case 'bottom': return [x, y + 1];
+         case 'left': return [x - 1, y];
+       }
+     }
+ 
+     function getOpposite(dir) {
+       return { top: 'bottom', bottom: 'top', left: 'right', right: 'left' }[dir];
+     }
+ 
+     function shuffle(arr) {
+       return arr.sort(() => Math.random() - 0.5);
+     }
+ 
+     function drawMaze() {
+       ctx.clearRect(0, 0, canvas.width, canvas.height);
+       ctx.strokeStyle = '#000';
+       ctx.lineWidth = 2;
+ 
+       for (let y = 0; y < ROWS; y++) {
+         for (let x = 0; x < COLS; x++) {
+           const cell = maze[y][x];
+           const px = x * CELL_SIZE;
+           const py = y * CELL_SIZE;
+ 
+           if (cell.top) {
+             ctx.beginPath();
+             ctx.moveTo(px, py);
+             ctx.lineTo(px + CELL_SIZE, py);
+             ctx.stroke();
+           }
+           if (cell.right) {
+             ctx.beginPath();
+             ctx.moveTo(px + CELL_SIZE, py);
+             ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE);
+             ctx.stroke();
+           }
+           if (cell.bottom) {
+             ctx.beginPath();
+             ctx.moveTo(px, py + CELL_SIZE);
+             ctx.lineTo(px + CELL_SIZE, py + CELL_SIZE);
+             ctx.stroke();
+           }
+           if (cell.left) {
+             ctx.beginPath();
+             ctx.moveTo(px, py);
+             ctx.lineTo(px, py + CELL_SIZE);
+             ctx.stroke();
+           }
+         }
+       }
+     }
+ 
+     function placePlayer() {
+       playerPos = { x: 0, y: 0 };
+       updatePlayer();
+     }
+ 
+     function updatePlayer() {
+       player.style.left = playerPos.x * CELL_SIZE + 7 + 'px';
+       player.style.top = playerPos.y * CELL_SIZE + 7 + 'px';
+ 
+       // Check win
+       if (playerPos.x === COLS - 1 && playerPos.y === ROWS - 1) {
+         gameContainer.style.display = 'none';
+         winScreen.style.display = 'block';
+       }
+     }
+ 
+     document.addEventListener('keydown', (e) => {
+       const { x, y } = playerPos;
+       const cell = maze[y][x];
+ 
+       if (e.key === 'ArrowUp' && !cell.top) playerPos.y--;
+       if (e.key === 'ArrowDown' && !cell.bottom) playerPos.y++;
+       if (e.key === 'ArrowLeft' && !cell.left) playerPos.x--;
+       if (e.key === 'ArrowRight' && !cell.right) playerPos.x++;
+ 
+       playerPos.x = Math.max(0, Math.min(COLS - 1, playerPos.x));
+       playerPos.y = Math.max(0, Math.min(ROWS - 1, playerPos.y));
+       updatePlayer();
+     });
+   </script>
+ </body>
+ </html>
